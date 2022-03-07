@@ -9,6 +9,7 @@ import UIKit
 
 protocol DiaryDetailViewDelegate: AnyObject {
     func didSelectDelete(indexPath: IndexPath)
+    func didSelectStar(indexPath: IndexPath, isStar: Bool)
 }
 
 class DiaryDetailViewController: UIViewController {
@@ -19,6 +20,7 @@ class DiaryDetailViewController: UIViewController {
     weak var delegate: DiaryDetailViewDelegate?
     var diary: Diary?
     var indexPath: IndexPath?
+    var starButton : UIBarButtonItem?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -30,7 +32,10 @@ class DiaryDetailViewController: UIViewController {
         self.titleLabel.text = diary.title
         self.contentsTextView.text = diary.contents
         self.dateLabel.text = self.dateToString(date: diary.date)
-        
+        self.starButton = UIBarButtonItem(image: nil, style: .plain, target: self, action: #selector(tapStarButton))
+        self.starButton?.image = diary.isStar ? UIImage(systemName: "star.fill") : UIImage(systemName: "star")
+        self.starButton?.tintColor = .orange
+        self.navigationItem.rightBarButtonItem = self.starButton
     }
     
     private func dateToString(date: Date) -> String {
@@ -73,6 +78,39 @@ class DiaryDetailViewController: UIViewController {
         self.navigationController?.popViewController(animated: true)
 
     }
+    
+    @objc func tapStarButton() {
+        guard let isStar = self.diary?.isStar else { return }
+        guard let indexPath = indexPath else {
+            return
+        }
+
+        if isStar {
+            self.starButton?.image = UIImage(systemName: "star")
+        } else {
+            self.starButton?.image = UIImage(systemName: "star.fill")
+            showToast(message: "즐겨찾기에 추가 되었습니다.")
+        }
+        self.diary?.isStar = !isStar
+        self.delegate?.didSelectStar(indexPath: indexPath, isStar: self.diary?.isStar ?? false)
+    }
+    
+    func showToast(message : String, font: UIFont = UIFont.systemFont(ofSize: 14.0))
+    { let toastLabel = UILabel(frame: CGRect(x: self.view.frame.size.width/2 - 90, y: self.view.frame.size.height-100, width: 180, height: 35))
+        toastLabel.backgroundColor = UIColor.black.withAlphaComponent(0.6)
+        toastLabel.textColor = UIColor.white
+        toastLabel.font = font
+        toastLabel.textAlignment = .center
+        toastLabel.text = message
+        toastLabel.alpha = 1.0
+        toastLabel.layer.cornerRadius = 10;
+        toastLabel.clipsToBounds = true
+        self.view.addSubview(toastLabel)
+        UIView.animate(withDuration: 10.0, delay: 0.1, options: .curveEaseOut, animations: { toastLabel.alpha = 0.0 }, completion: {(isCompleted) in toastLabel.removeFromSuperview() })
+        
+    }
+
+    
     deinit {
         NotificationCenter.default.removeObserver(self)
     }
